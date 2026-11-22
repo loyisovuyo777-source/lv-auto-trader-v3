@@ -1,8 +1,11 @@
-import express from "express";
-import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import OpenAI from "openai";
 
-const app = express();
+const __filename =
+fileURLToPath(import.meta.url);
+const __dirname =
+path.dirman(__filename); 
 
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
@@ -12,7 +15,7 @@ const client = new OpenAI({
 });
 
 app.get("/", (req, res) => {
-  res.send("LV Auto Trader V3 AI server is running!");
+  res.sendfile(path.join(__dirmane,"index.html));
 });
 
 app.post("/analyze", async (req, res) => {
