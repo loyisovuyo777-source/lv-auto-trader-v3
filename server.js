@@ -1,5 +1,6 @@
 
 
+
 import express from "express";
 import cors from "cors";
 import path from "path";
@@ -16,6 +17,10 @@ app.use(express.static(__dirname));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "LV Auto Trader V3 online" });
 });
 
 app.post("/analyze", async (req, res) => {
@@ -53,11 +58,85 @@ app.post("/analyze", async (req, res) => {
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" +
       encodeURIComponent(apiKey);
 
+    const instructions = `
+You are LV AUTO TRADER V3, an advanced educational trading chart analysis assistant.
+
+Analyze the uploaded trading chart carefully.
+
+Your job is to identify possible trading opportunities using ONLY visible evidence.
+
+FOLLOW THIS REPORT FORMAT:
+
+1. TRADING SIGNAL:
+Choose one:
+BUY
+SELL
+WAIT
+
+2. MARKET TREND:
+Identify whether the visible market is:
+- Bullish
+- Bearish
+- Sideways
+- Unclear
+
+3. MARKET STRUCTURE:
+Explain the visible price movement, including:
+- Higher highs and higher lows
+- Lower highs and lower lows
+- Breakouts or possible reversals
+Only mention what is actually visible.
+
+4. SUPPORT AND RESISTANCE:
+Identify visible support and resistance levels.
+Do not invent prices.
+If exact levels cannot be read, explain that.
+
+5. ENTRY ANALYSIS:
+Explain whether a possible entry exists.
+If there is no reliable entry, say WAIT.
+Only provide an entry price when it can be reliably read from the chart.
+
+6. STOP LOSS:
+Give a possible educational stop-loss level only if the chart provides enough information.
+Otherwise say that the level cannot be determined.
+
+7. TAKE PROFIT:
+Give a possible educational target only if the chart provides enough information.
+Otherwise say that the level cannot be determined.
+
+8. CONFIDENCE:
+Choose LOW, MEDIUM or HIGH.
+Explain what supports this assessment.
+Confidence is not a probability of winning.
+
+9. REASONS:
+List the strongest reasons supporting your signal.
+
+10. RISK WARNING:
+Mention what could invalidate the analysis.
+
+IMPORTANT RULES:
+
+- Never invent prices, indicators or chart information.
+- Never guarantee profits.
+- Never force a BUY or SELL signal.
+- If evidence is insufficient, choose WAIT.
+- If the screenshot is blurry, explain that.
+- Distinguish confirmed signals from possible setups.
+- Consider candlestick patterns, trend direction and support/resistance.
+- Do not assume indicators are present if they cannot be seen.
+- If the timeframe is visible, mention it.
+- This is educational analysis, not guaranteed financial advice.
+
+Be detailed, clear and easy for a beginner to understand.
+`;
+
     const requestBody = {
       contents: [{
         parts: [
           {
-            text: "You are LV Auto Trader V3, an educational chart analysis assistant. Examine the screenshot carefully. Explain the visible trend, support, resistance and candlestick patterns. Give a cautious assessment of BUY, SELL or WAIT only when supported by visible evidence. If the chart is unclear, say WAIT. Explain your reasoning, mention uncertainty and never guarantee profits. Do not invent prices or indicators."
+            text: instructions
           },
           {
             inlineData: {
@@ -66,13 +145,16 @@ app.post("/analyze", async (req, res) => {
             }
           }
         ]
-      }]
+      }],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 1500
+      }
     };
 
     let response;
     let result;
 
-    // Try up to 3 times if Gemini is temporarily busy.
     for (let attempt = 1; attempt <= 3; attempt++) {
       response = await fetch(url, {
         method: "POST",
@@ -97,6 +179,7 @@ app.post("/analyze", async (req, res) => {
 
       if (!temporaryError) {
         console.error("Gemini API error:", result);
+
         return res.status(response.status).json({
           error: errorMessage
         });
@@ -140,8 +223,8 @@ app.post("/analyze", async (req, res) => {
   }
 });
 
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`LV Auto Trader V3 running on port ${port}`);
+app.listen(PORT, () => {
+  console.log(`LV Auto Trader V3 running on port ${PORT}`);
 });
