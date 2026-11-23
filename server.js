@@ -1,4 +1,5 @@
 
+
 import express from "express";
 import cors from "cors";
 import path from "path";
@@ -48,39 +49,73 @@ app.post("/analyze", async (req, res) => {
     const mimeType = match[1];
     const imageData = match[2].replace(/\s/g, "");
 
-    const response = await fetch(
+    const url =
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=" +
-      encodeURIComponent(apiKey),
-      {
+      encodeURIComponent(apiKey);
+
+    const requestBody = {
+      contents: [{
+        parts: [
+          {
+            text: "You are LV Auto Trader V3, an educational chart analysis assistant. Examine the screenshot carefully. Explain the visible trend, support, resistance and candlestick patterns. Give a cautious assessment of BUY, SELL or WAIT only when supported by visible evidence. If the chart is unclear, say WAIT. Explain your reasoning, mention uncertainty and never guarantee profits. Do not invent prices or indicators."
+          },
+          {
+            inlineData: {
+              mimeType,
+              data: imageData
+            }
+          }
+        ]
+      }]
+    };
+
+    let response;
+    let result;
+
+    // Try up to 3 times if Gemini is temporarily busy.
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              {
-                text: "You are LV Auto Trader V3, an educational chart analysis assistant. Examine the screenshot carefully. Explain the visible trend, support, resistance and candlestick patterns. Give a cautious assessment of BUY, SELL or WAIT only when supported by visible evidence. If the chart is unclear, say WAIT. Explain your reasoning, mention uncertainty and never guarantee profits. Do not invent prices or indicators."
-              },
-              {
-                inlineData: {
-                  mimeType: mimeType,
-                  data: imageData
-                }
-              }
-            ]
-          }]
-        })
-      }
-    );
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error("Gemini API error:", result);
-      return res.status(response.status).json({
-        error: result.error?.message || "Gemini analysis failed."
+        body: JSON.stringify(requestBody)
       });
+
+      result = await response.json();
+
+      if (response.ok) {
+        break;
+      }
+
+      const errorMessage =
+        result.error?.message || "Gemini analysis failed.";
+
+      const temporaryError =
+        [429, 500, 502, 503, 504].includes(response.status) ||
+        /high demand|overloaded|temporarily unavailable|resource_exhausted/i.test(errorMessage);
+
+      if (!temporaryError) {
+        console.error("Gemini API error:", result);
+        return res.status(response.status).json({
+          error: errorMessage
+        });
+      }
+
+      if (attempt === 3) {
+        console.error("Gemini is still busy:", result);
+
+        return res.status(503).json({
+          code: "AI_BUSY",
+          error: "AI is busy right now. Please wait a few minutes and try again."
+        });
+      }
+
+      console.log(`Gemini busy. Retrying attempt ${attempt + 1}...`);
+
+      await new Promise(resolve =>
+        setTimeout(resolve, attempt * 2000)
+      );
     }
 
     const analysis = result.candidates?.[0]?.content?.parts
@@ -94,12 +129,12 @@ app.post("/analyze", async (req, res) => {
       });
     }
 
-    res.json({ analysis });
+    return res.json({ analysis });
 
   } catch (error) {
     console.error("Analysis error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       error: "Analysis failed. Please try again."
     });
   }
