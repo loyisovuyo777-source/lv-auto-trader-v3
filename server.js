@@ -117,6 +117,42 @@ Explain exactly what price action would confirm the setup.
 12. RISK WARNING:
 Explain what could invalidate the analysis.
 
+13. TRADE QUALITY SCORE:
+
+Give BUY and SELL separate scores from 0 to 100.
+
+BUY SCORE:
+Rate the strength of the bullish opportunity.
+
+SELL SCORE:
+Rate the strength of the bearish opportunity.
+
+Evaluate these factors:
+- Market trend alignment: 20 points
+- Market structure: 20 points
+- Candlestick confirmation: 20 points
+- Entry confirmation: 20 points
+- Risk-to-reward quality: 20 points
+
+Explain why each score was awarded.
+
+SCORE INTERPRETATION:
+
+80-100: Strong setup.
+60-79: Moderate setup.
+40-59: Weak setup.
+0-39: Very weak setup.
+
+IMPORTANT SCORING RULES:
+
+- Never invent evidence to increase a score.
+- Do not award points for indicators that are not visible.
+- Missing information receives no points.
+- A high score does not guarantee a winning trade.
+- A high score must never automatically trigger BUY or SELL.
+- If entry confirmation is missing, the final signal must remain WAIT.
+- Show both BUY and SELL scores so the user can compare them.
+
 IMPORTANT RULES:
 
 - Examine both BUY and SELL possibilities.
