@@ -44,5 +44,50 @@
     <p>Trading signals: Not active</p>
     <button disabled>AI Analysis Coming Soon</button>
   </div>
+<script>
+const imageInput = document.getElementById("chartImage");
+const analyzeButton = document.getElementById("analyzeButton");
+analyzeButton.addEventListener("click", async () => {
+  const file = imageInput.files[0];
+
+  if (!file) {
+    alert("Please upload a chart screenshot first.");
+    return;
+  }
+
+  analyzeButton.disabled = true;
+  analyzeButton.textContent = "Analyzing...";
+  const reader = new FileReader();
+
+reader.onload = async () => {
+  try {
+    const response = await fetch("/analyze", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        image: reader.result
+      })
+    });
+
+    const data = await response.json();
+
+    const result = document.createElement("p");
+    result.textContent = data.analysis || data.error || "No result received.";
+
+    analyzeButton.parentElement.appendChild(result);
+
+  } catch (error) {
+    alert("Could not connect to the AI server.");
+  } finally {
+    analyzeButton.disabled = false;
+    analyzeButton.textContent = "Analyze Chart";
+  }
+};
+
+reader.readAsDataURL(file);
+});
+</script>
 </body>
 </html>
