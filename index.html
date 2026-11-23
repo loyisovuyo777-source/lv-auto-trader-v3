@@ -1,52 +1,233 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LV Auto Trader V3</title>
-  <style>
-    body {
-      background: #101827;
-      color: white;
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-    .panel {
-      background: #1e293b;
-      padding: 20px;
-      border-radius: 14px;
-      margin-top: 20px;
-    }
-    button {
-      padding: 14px;
-      background: #16a34a;
-      color: white;
-      border: 0;
-      border-radius: 8px;
-      width: 100%;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LV Auto Trader V3</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  background: #101827;
+  color: white;
+  font-family: Arial, sans-serif;
+  padding: 16px;
+  margin: 0;
+}
+
+.container {
+  max-width: 600px;
+  margin: auto;
+}
+
+h1 {
+  text-align: center;
+  color: #38bdf8;
+}
+
+.subtitle {
+  text-align: center;
+  color: #94a3b8;
+}
+
+.panel {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 14px;
+  margin-top: 18px;
+  border: 1px solid #334155;
+}
+
+input[type="file"] {
+  width: 100%;
+  margin: 12px 0;
+  color: white;
+}
+
+button {
+  padding: 15px;
+  background: #2563eb;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  width: 100%;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+button:disabled {
+  opacity: 0.6;
+}
+
+.status {
+  color: #facc15;
+  font-weight: bold;
+}
+
+.signal {
+  display: none;
+  padding: 22px;
+  margin-top: 20px;
+  border-radius: 14px;
+  text-align: center;
+  border: 2px solid;
+}
+
+.signal h2 {
+  font-size: 38px;
+  margin: 5px;
+}
+
+.buy {
+  display: block;
+  background: #123d29;
+  border-color: #22c55e;
+  color: #4ade80;
+}
+
+.sell {
+  display: block;
+  background: #451e25;
+  border-color: #ef4444;
+  color: #f87171;
+}
+
+.wait {
+  display: block;
+  background: #453713;
+  border-color: #eab308;
+  color: #facc15;
+}
+
+.unclear {
+  display: block;
+  background: #263449;
+  border-color: #64748b;
+  color: #cbd5e1;
+}
+
+#analysisText {
+  white-space: pre-wrap;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  color: #e2e8f0;
+}
+
+.disclaimer {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.footer {
+  text-align: center;
+  color: #64748b;
+  font-size: 12px;
+  margin: 25px 0;
+}
+</style>
 </head>
+
 <body>
-  <h1>LV AUTO TRADER V3</h1>
-  <p>AI Trading Chart Analyzer</p>
+<div class="container">
 
-  <div class="panel">
-    <h3>Upload your trading screenshot</h3>
-    <input type="file" id="chartImage" accept="image/*">
-    <p>Supported platforms: Olymp Trade and MT5</p>
-  </div>
+<h1>LV AUTO TRADER V3</h1>
+<p class="subtitle">AI Trading Chart Analyzer</p>
 
-  <div class="panel">
-    <h3>Analysis status</h3>
-    <p>AI connection: Not connected</p>
-    <p>Trading signals: Not active</p>
-    <button id="analyzeButton">Analyze Chart</button>
-  </div>
+<div class="panel">
+<h3>Upload Trading Screenshot</h3>
+<input type="file" id="chartImage"
+accept="image/png,image/jpeg,image/webp">
+<p class="subtitle">Supported platforms: Olymp Trade and MT5</p>
+</div>
+
+<div class="panel">
+<h3>System Status</h3>
+<p>AI connection: <span class="status" id="connectionStatus">Ready to test</span></p>
+<p>Trading signal: <span class="status" id="signalStatus">Waiting for analysis</span></p>
+<button id="analyzeButton">ANALYZE CHART</button>
+</div>
+
+<div class="panel">
+<h3>Trading Signal</h3>
+<div id="signalBox" class="signal unclear">
+<h2 id="signalTitle">WAITING</h2>
+<p id="signalDescription">Upload a screenshot to begin analysis.</p>
+</div>
+</div>
+
+<div class="panel">
+<h3>AI Chart Analysis</h3>
+<p id="analysisText">Your analysis will appear here.</p>
+</div>
+
+<div class="panel">
+<h3>Risk Reminder</h3>
+<p class="disclaimer">
+AI analysis is educational and can be incorrect.
+BUY, SELL and WAIT are not guaranteed predictions.
+Always check the chart yourself and never risk money
+you cannot afford to lose.
+</p>
+</div>
+
+<div class="footer">
+LV AUTO TRADER V3 | Powered by Gemini AI
+</div>
+
+</div>
+
 <script>
 const imageInput = document.getElementById("chartImage");
 const analyzeButton = document.getElementById("analyzeButton");
+const signalBox = document.getElementById("signalBox");
+const signalTitle = document.getElementById("signalTitle");
+const signalDescription = document.getElementById("signalDescription");
+const analysisText = document.getElementById("analysisText");
+const connectionStatus = document.getElementById("connectionStatus");
+const signalStatus = document.getElementById("signalStatus");
+
+function showSignal(signal) {
+  signalBox.className = "signal " + signal.toLowerCase();
+
+  if (signal === "BUY") {
+    signalTitle.textContent = "BUY ↑";
+    signalDescription.textContent = "Possible bullish opportunity.";
+  } else if (signal === "SELL") {
+    signalTitle.textContent = "SELL ↓";
+    signalDescription.textContent = "Possible bearish opportunity.";
+  } else if (signal === "WAIT") {
+    signalTitle.textContent = "WAIT ⏳";
+    signalDescription.textContent = "No clear entry. Wait for confirmation.";
+  } else {
+    signalTitle.textContent = "SIGNAL UNCLEAR";
+    signalDescription.textContent = "No clear trading decision was identified.";
+  }
+}
+
+function extractSignal(text) {
+  const recommendation = text.match(
+    /(?:recommendation|assessment|trading signal|decision)\s*[:\-–]\s*(BUY|SELL|WAIT)\b/i
+  );
+
+  if (recommendation) {
+    return recommendation[1].toUpperCase();
+  }
+
+  for (const line of text.split(/\n/)) {
+    const match = line.match(
+      /^\s*(?:[•*#-]\s*)?(BUY|SELL|WAIT)\s*[↑↓]?\s*[.!]?\s*$/i
+    );
+
+    if (match) return match[1].toUpperCase();
+  }
+
+  return "UNCLEAR";
+}
+
 analyzeButton.addEventListener("click", async () => {
   const file = imageInput.files[0];
 
@@ -55,39 +236,72 @@ analyzeButton.addEventListener("click", async () => {
     return;
   }
 
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+    alert("Please select a PNG, JPEG or WebP screenshot.");
+    return;
+  }
+
   analyzeButton.disabled = true;
-  analyzeButton.textContent = "Analyzing...";
+  analyzeButton.textContent = "ANALYZING...";
+  connectionStatus.textContent = "Connecting...";
+  signalStatus.textContent = "Analyzing chart...";
+  analysisText.textContent = "Gemini is examining your screenshot...";
+
+  signalBox.className = "signal unclear";
+  signalTitle.textContent = "ANALYZING...";
+  signalDescription.textContent = "Please wait for the AI result.";
+
   const reader = new FileReader();
 
-reader.onload = async () => {
-  try {
-    const response = await fetch("/analyze", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        image: reader.result
-      })
-    });
+  reader.onload = async () => {
+    try {
+      const response = await fetch("/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ image: reader.result })
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    const result = document.createElement("p");
-    result.textContent = data.analysis || data.error || "No result received.";
+      if (!response.ok) {
+        throw new Error(data.error || "Analysis failed.");
+      }
 
-    analyzeButton.parentElement.appendChild(result);
+      if (!data.analysis) {
+        throw new Error("No analysis was returned.");
+      }
 
-  } catch (error) {
-    alert("Could not connect to the AI server.");
-  } finally {
+      analysisText.textContent = data.analysis;
+      connectionStatus.textContent = "Response received";
+
+      const signal = extractSignal(data.analysis);
+      showSignal(signal);
+      signalStatus.textContent = signal;
+
+    } catch (error) {
+      connectionStatus.textContent = "Error";
+      signalStatus.textContent = "Unavailable";
+      showSignal("UNCLEAR");
+      analysisText.textContent = error.message;
+
+    } finally {
+      analyzeButton.disabled = false;
+      analyzeButton.textContent = "ANALYZE CHART";
+    }
+  };
+
+  reader.onerror = () => {
+    connectionStatus.textContent = "Error";
+    analysisText.textContent = "Could not read your screenshot.";
     analyzeButton.disabled = false;
-    analyzeButton.textContent = "Analyze Chart";
-  }
-};
+    analyzeButton.textContent = "ANALYZE CHART";
+  };
 
-reader.readAsDataURL(file);
+  reader.readAsDataURL(file);
 });
 </script>
+
 </body>
 </html>
