@@ -1,5 +1,5 @@
 import express from "express";
-import cors from "corse";
+import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import OpenAI from "openai";
@@ -7,10 +7,9 @@ import OpenAI from "openai";
 const __filename =
 fileURLToPath(import.meta.url);
 const __dirname =
-path.dirman(__filename); 
+path.dirname(__filename); 
 const app = express();
 app.use(express.static(__dirname));
-const openai = new OpenAi({apiKey: process.env.OPENAI_API_KEY});
 
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
@@ -18,11 +17,9 @@ app.use(express.json({ limit: "10mb" }));
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
-
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirmane,"index.html));
+ ares.sendFile(path.join(__dirname, "index.html"));
 });
-
 app.post("/analyze", async (req, res) => {
   try {
     const { image } = req.body;
@@ -57,5 +54,5 @@ app.post("/analyze", async (req, res) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, "0.0.0.0", () => {
-  console.log(`LV Auto Trader V3 running on port ${port}`);
+  console.log(`lv Auto Trader v3 running on port ${port}`);
 });
