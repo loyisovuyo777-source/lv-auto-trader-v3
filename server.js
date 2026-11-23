@@ -1,6 +1,4 @@
 
-
-
 import express from "express";
 import cors from "cors";
 import path from "path";
@@ -20,7 +18,9 @@ app.get("/", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res.json({ status: "LV Auto Trader V3 online" });
+  res.json({
+    status: "LV Auto Trader V3.1 online"
+  });
 });
 
 app.post("/analyze", async (req, res) => {
@@ -29,7 +29,7 @@ app.post("/analyze", async (req, res) => {
 
     if (!apiKey) {
       return res.status(500).json({
-        error: "Gemini API key is missing."
+        error: "Gemini API key is missing. Check Render environment variables."
       });
     }
 
@@ -37,7 +37,7 @@ app.post("/analyze", async (req, res) => {
 
     if (!image || typeof image !== "string") {
       return res.status(400).json({
-        error: "Please upload a chart image."
+        error: "Please upload a chart screenshot."
       });
     }
 
@@ -51,7 +51,7 @@ app.post("/analyze", async (req, res) => {
       });
     }
 
-    const mimeType = match[1];
+    const mimeType = match[1].toLowerCase();
     const imageData = match[2].replace(/\s/g, "");
 
     const url =
@@ -59,81 +59,74 @@ app.post("/analyze", async (req, res) => {
       encodeURIComponent(apiKey);
 
     const instructions = `
+You are LV AUTO TRADER V3.1, an educational trading chart analysis assistant.
 
-You are LV AUTO TRADER V3, an advanced educational trading analysis assistant.
+Analyze the uploaded chart carefully.
 
-Analyze every uploaded chart for BOTH BUY and SELL opportunities.
+Your job is to examine BOTH BUY and SELL opportunities independently.
 
-AUTOMATIC DIRECTION SELECTION:
+1. TRADING SIGNAL
+Choose BUY, SELL or WAIT.
 
-Evaluate BUY and SELL independently.
-Choose BUY when bullish evidence is stronger.
-Choose SELL when bearish evidence is stronger.
-Choose WAIT when neither direction has sufficient confirmation.
-
-NEVER force a trade.
-
-REPORT FORMAT:
-
-1. TRADING SIGNAL:
-BUY, SELL or WAIT.
-
-2. MARKET TREND:
+2. MARKET TREND
 Bullish, Bearish, Sideways or Unclear.
+Explain why.
 
-3. BUY SETUP:
-Explain bullish evidence, possible entry confirmation and invalidation.
+3. MARKET STRUCTURE
+Identify visible higher highs, higher lows, lower highs or lower lows.
+If unclear, say so.
 
-4. SELL SETUP:
-Explain bearish evidence, possible entry confirmation and invalidation.
+4. BUY SETUP
+Explain bullish evidence and what confirmation is needed.
 
-5. STRONGEST DIRECTION:
-State which direction has stronger evidence and why.
+5. SELL SETUP
+Explain bearish evidence and what confirmation is needed.
 
-6. ENTRY PRICE:
-Only provide a level if it can be reliably read or derived from visible chart information.
-Otherwise state NOT CONFIRMED.
+6. STRONGEST DIRECTION
+Compare BUY and SELL evidence.
+Never force a direction.
 
-7. STOP LOSS:
-Suggest a possible level only when a valid entry and market structure are identifiable.
-Otherwise state NOT DETERMINED.
+7. ENTRY PRICE
+Only give a price if it can reliably be read or derived from the chart.
+Otherwise say NOT CONFIRMED.
 
-8. TAKE PROFIT:
-Suggest a possible target only when enough information is available.
-Otherwise state NOT DETERMINED.
+8. STOP LOSS
+Only suggest a level when a valid entry and market structure are identifiable.
+Otherwise say NOT DETERMINED.
 
-9. RISK TO REWARD:
-Calculate the ratio only when entry, stop loss and target are available.
-Prefer setups offering at least 1:2.
-Do not invent levels to create a ratio.
+9. TAKE PROFIT
+Only suggest a target when enough information is available.
+Otherwise say NOT DETERMINED.
 
-10. CONFIDENCE:
+10. RISK TO REWARD
+Calculate only when entry, stop loss and target are available.
+Prefer at least 1:2.
+Never invent prices.
+
+11. CONFIDENCE
 LOW, MEDIUM or HIGH.
-Explain the evidence. Confidence is not a probability of profit.
+Explain the evidence.
+Confidence is not a probability of profit.
 
-11. CONFIRMATION REQUIRED:
-Explain exactly what price action would confirm the setup.
+12. CONFIRMATION REQUIRED
+Explain what price action is needed before entering.
 
-12. RISK WARNING:
+13. RISK WARNING
 Explain what could invalidate the analysis.
 
-13. TRADE QUALITY SCORE:
+14. TRADE QUALITY SCORE
 
 Give BUY and SELL separate scores from 0 to 100.
 
-BUY SCORE:
-Rate the strength of the bullish opportunity.
+Evaluate each direction using:
 
-SELL SCORE:
-Rate the strength of the bearish opportunity.
-
-Evaluate these factors:
 - Market trend alignment: 20 points
 - Market structure: 20 points
 - Candlestick confirmation: 20 points
 - Entry confirmation: 20 points
 - Risk-to-reward quality: 20 points
 
+Show the points awarded for each factor.
 Explain why each score was awarded.
 
 SCORE INTERPRETATION:
@@ -145,95 +138,126 @@ SCORE INTERPRETATION:
 
 IMPORTANT SCORING RULES:
 
-- Never invent evidence to increase a score.
-- Do not award points for indicators that are not visible.
+- Never invent evidence.
 - Missing information receives no points.
+- Do not award points for invisible indicators.
 - A high score does not guarantee a winning trade.
-- A high score must never automatically trigger BUY or SELL.
-- If entry confirmation is missing, the final signal must remain WAIT.
-- Show both BUY and SELL scores so the user can compare them.
+- Scores must never automatically trigger BUY or SELL.
+- Missing entry confirmation means WAIT.
+- Always show both scores.
 
-IMPORTANT RULES:
+IMPORTANT SAFETY RULES:
 
-- Examine both BUY and SELL possibilities.
-- Never assume that a bearish market automatically means SELL.
-- Never assume that a bullish market automatically means BUY.
+- Never assume bullish automatically means BUY.
+- Never assume bearish automatically means SELL.
 - Require confirmation before suggesting an entry.
-- Never invent prices, indicators, volume or chart information.
+- Never invent chart prices or indicators.
 - If the chart is unclear, choose WAIT.
 - Never guarantee profits.
 - Explain everything in beginner-friendly English.
 - This is educational analysis, not guaranteed financial advice.
-
 `;
 
     const requestBody = {
-      contents: [{
-        parts: [
-          {
-            text: instructions
-          },
-          {
-            inlineData: {
-              mimeType,
-              data: imageData
+      contents: [
+        {
+          parts: [
+            { text: instructions },
+            {
+              inlineData: {
+                mimeType,
+                data: imageData
+              }
             }
-          }
-        ]
-      }],
+          ]
+        }
+      ],
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 1500
+        maxOutputTokens: 2200
       }
     };
 
-    let response;
-    let result;
+    let result = null;
+    let lastError = "Gemini analysis failed.";
 
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(requestBody)
+    // Four attempts with increasing waiting time.
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      try {
+        console.log(
+          `Starting Gemini analysis. Attempt ${attempt}/4`
+        );
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(requestBody),
+          signal: AbortSignal.timeout(90000)
+        });
+
+        const responseText = await response.text();
+
+        try {
+          result = JSON.parse(responseText);
+        } catch {
+          result = {};
+        }
+
+        if (response.ok) {
+          break;
+        }
+
+        lastError =
+          result.error?.message ||
+          `Gemini returned HTTP ${response.status}.`;
+
+        const temporaryError =
+          [429, 500, 502, 503, 504].includes(response.status) ||
+          /high demand|overloaded|temporarily unavailable|resource_exhausted/i.test(lastError);
+
+        if (!temporaryError) {
+          console.error("Gemini API error:", result);
+
+          return res.status(response.status).json({
+            error: lastError
+          });
+        }
+
+        console.error(
+          `Gemini temporarily unavailable: ${lastError}`
+        );
+
+      } catch (error) {
+        lastError = error.message || "Network request failed.";
+
+        console.error(
+          `Gemini request error on attempt ${attempt}:`,
+          lastError
+        );
+      }
+
+      if (attempt < 4) {
+        const waitTime =
+          2000 * Math.pow(2, attempt - 1) +
+          Math.floor(Math.random() * 500);
+
+        console.log(
+          `Waiting ${Math.round(waitTime / 1000)} seconds before retry...`
+        );
+
+        await new Promise(resolve =>
+          setTimeout(resolve, waitTime)
+        );
+      }
+    }
+
+    if (!result) {
+      return res.status(503).json({
+        code: "AI_BUSY",
+        error: "AI is temporarily unavailable. Please try again in a few minutes."
       });
-
-      result = await response.json();
-
-      if (response.ok) {
-        break;
-      }
-
-      const errorMessage =
-        result.error?.message || "Gemini analysis failed.";
-
-      const temporaryError =
-        [429, 500, 502, 503, 504].includes(response.status) ||
-        /high demand|overloaded|temporarily unavailable|resource_exhausted/i.test(errorMessage);
-
-      if (!temporaryError) {
-        console.error("Gemini API error:", result);
-
-        return res.status(response.status).json({
-          error: errorMessage
-        });
-      }
-
-      if (attempt === 3) {
-        console.error("Gemini is still busy:", result);
-
-        return res.status(503).json({
-          code: "AI_BUSY",
-          error: "AI is busy right now. Please wait a few minutes and try again."
-        });
-      }
-
-      console.log(`Gemini busy. Retrying attempt ${attempt + 1}...`);
-
-      await new Promise(resolve =>
-        setTimeout(resolve, attempt * 2000)
-      );
     }
 
     const analysis = result.candidates?.[0]?.content?.parts
@@ -242,12 +266,18 @@ IMPORTANT RULES:
       .trim();
 
     if (!analysis) {
-      return res.status(500).json({
-        error: "Gemini returned no analysis. Please try again."
+      console.error("Gemini returned no usable analysis:", result);
+
+      return res.status(502).json({
+        error: "AI returned no readable analysis. Please try again."
       });
     }
 
-    return res.json({ analysis });
+    console.log("Gemini analysis completed successfully.");
+
+    return res.json({
+      analysis
+    });
 
   } catch (error) {
     console.error("Analysis error:", error);
@@ -261,5 +291,7 @@ IMPORTANT RULES:
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
-  console.log(`LV Auto Trader V3 running on port ${PORT}`);
+  console.log(
+    `LV Auto Trader V3.1 running on port ${PORT}`
+  );
 });
