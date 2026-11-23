@@ -208,8 +208,11 @@ function showSignal(signal) {
   }
 }
 
+
 function extractSignal(text) {
-  const recommendation = text.match(
+  const cleanText = text.replace(/[*_`~]/g, "");
+
+  const recommendation = cleanText.match(
     /(?:recommendation|assessment|trading signal|decision)\s*[:\-–]\s*(BUY|SELL|WAIT)\b/i
   );
 
@@ -217,9 +220,9 @@ function extractSignal(text) {
     return recommendation[1].toUpperCase();
   }
 
-  for (const line of text.split(/\n/)) {
+  for (const line of cleanText.split(/\n/)) {
     const match = line.match(
-      /^\s*(?:[•*#-]\s*)?(BUY|SELL|WAIT)\s*[↑↓]?\s*[.!]?\s*$/i
+      /^\s*(?:[•#-]\s*)?(BUY|SELL|WAIT)\s*[↑↓]?\s*[.!]?\s*$/i
     );
 
     if (match) return match[1].toUpperCase();
@@ -227,6 +230,7 @@ function extractSignal(text) {
 
   return "UNCLEAR";
 }
+
 
 analyzeButton.addEventListener("click", async () => {
   const file = imageInput.files[0];
