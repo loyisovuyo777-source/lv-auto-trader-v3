@@ -253,12 +253,16 @@ IMPORTANT SAFETY RULES:
       }
     }
 
-    if (!result) {
-      return res.status(503).json({
-        code: "AI_BUSY",
-        error: "AI is temporarily unavailable. Please try again in a few minutes."
-      });
-    }
+    
+if (result?.error) {
+  console.error("Gemini API unavailable:", result.error);
+
+  return res.status(503).json({
+    code: "AI_BUSY",
+    error: "Gemini is busy right now. Please wait a few minutes and try again."
+  });
+}
+
 
     const analysis = result.candidates?.[0]?.content?.parts
       ?.map(part => part.text || "")
