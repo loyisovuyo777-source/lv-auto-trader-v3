@@ -184,9 +184,10 @@ let lastError = "Gemini analysis failed.";
 let succeeded = false;
 
 // Retry temporary server errors, but never retry quota errors.
+
 for (let attempt = 1; attempt <= 6; attempt++) {
   try {
-    console.log(`Starting Gemini analysis. Attempt ${attempt}/4`);
+    console.log(`Starting Gemini analysis. Attempt ${attempt}/6`);
 
     const response = await fetch(url, {
       method: "POST",
@@ -214,7 +215,6 @@ for (let attempt = 1; attempt <= 6; attempt++) {
       result.error?.message ||
       `Gemini returned HTTP ${response.status}.`;
 
-    // Stop immediately when Gemini reports a quota or rate limit.
     if (response.status === 429) {
       const dailyQuota =
         /quota|per day|daily|free.?tier|generate_content_requests/i.test(lastError);
@@ -231,7 +231,6 @@ for (let attempt = 1; attempt <= 6; attempt++) {
       });
     }
 
-    // Only retry temporary server errors.
     const temporaryError = [500, 502, 503, 504]
       .includes(response.status);
 
@@ -254,26 +253,28 @@ for (let attempt = 1; attempt <= 6; attempt++) {
   }
 
   if (attempt < 6) {
-  const retryDelays = [
-    2000,
-    4000,
-    8000,
-    12000,
-    15000
-  ];
+    const retryDelays = [
+      2000,
+      4000,
+      8000,
+      12000,
+      15000
+    ];
 
-  const waitTime = retryDelays[attempt - 1];
+    const waitTime = retryDelays[attempt - 1];
 
-  console.log(
-    `Waiting ${waitTime / 1000} seconds before retry...`
-  );
+    console.log(
+      `Waiting ${waitTime / 1000} seconds before retry...`
+    );
 
-  await new Promise(resolve =>
-    setTimeout(resolve, waitTime)
-  );
+    await new Promise(resolve =>
+      setTimeout(resolve, waitTime)
+    );
+  }
 }
 
 if (!succeeded) {
+
   console.error("Gemini analysis failed after all retries:", lastError);
 
   const busyError =
