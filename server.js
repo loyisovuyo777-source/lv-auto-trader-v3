@@ -267,11 +267,18 @@ for (let attempt = 1; attempt <= 4; attempt++) {
 }
 
 if (!succeeded) {
-  console.error("Gemini analysis failed:", lastError);
+  console.error("Gemini analysis failed after all retries:", lastError);
+
+  const busyError =
+    /high demand|overloaded|busy|503|temporarily unavailable/i.test(lastError);
 
   return res.status(503).json({
-    code: "GEMINI_UNAVAILABLE",
-    error: "Gemini is temporarily unavailable. Please try again later."
+    code: busyError
+      ? "GEMINI_BUSY"
+      : "GEMINI_UNAVAILABLE",
+    error: busyError
+      ? "Gemini is experiencing high demand. LV Auto Trader tried several times but could not connect. Please wait 30 seconds and try again."
+      : "Gemini could not complete the analysis after several attempts. Please try again shortly."
   });
 }
 
