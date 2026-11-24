@@ -185,7 +185,7 @@ let succeeded = false;
 
 // Retry temporary server errors, but never retry quota errors.
 
-for (let attempt = 1; attempt <= 6; attempt++) {
+for (let attempt = 1; attempt <= 2; attempt++) {
   try {
     console.log(`Starting Gemini analysis. Attempt ${attempt}/6`);
 
@@ -254,12 +254,8 @@ for (let attempt = 1; attempt <= 6; attempt++) {
 
   if (attempt < 6) {
     const retryDelays = [
-      2000,
-      4000,
-      8000,
-      12000,
-      15000
-    ];
+  2000
+];
 
     const waitTime = retryDelays[attempt - 1];
 
