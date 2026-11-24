@@ -178,88 +178,100 @@ IMPORTANT SAFETY RULES:
       }
     };
 
-    let result = null;
-    let lastError = "Gemini analysis failed.";
+ 
+let result = null;
+let lastError = "Gemini analysis failed.";
+let succeeded = false;
 
-    // Four attempts with increasing waiting time.
-    for (let attempt = 1; attempt <= 4; attempt++) {
-      try {
-        console.log(
-          `Starting Gemini analysis. Attempt ${attempt}/4`
-        );
+// Retry temporary server errors, but never retry quota errors.
+for (let attempt = 1; attempt <= 4; attempt++) {
+  try {
+    console.log(`Starting Gemini analysis. Attempt ${attempt}/4`);
 
-        const response = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(90000)
-        });
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(90000)
+    });
 
-        const responseText = await response.text();
+    const responseText = await response.text();
 
-        try {
-          result = JSON.parse(responseText);
-        } catch {
-          result = {};
-        }
-
-        if (response.ok) {
-          break;
-        }
-
-        lastError =
-          result.error?.message ||
-          `Gemini returned HTTP ${response.status}.`;
-
-        const temporaryError =
-          [429, 500, 502, 503, 504].includes(response.status) ||
-          /high demand|overloaded|temporarily unavailable|resource_exhausted/i.test(lastError);
-
-        if (!temporaryError) {
-          console.error("Gemini API error:", result);
-
-          return res.status(response.status).json({
-            error: lastError
-          });
-        }
-
-        console.error(
-          `Gemini temporarily unavailable: ${lastError}`
-        );
-
-      } catch (error) {
-        lastError = error.message || "Network request failed.";
-
-        console.error(
-          `Gemini request error on attempt ${attempt}:`,
-          lastError
-        );
-      }
-
-      if (attempt < 4) {
-        const waitTime =
-          2000 * Math.pow(2, attempt - 1) +
-          Math.floor(Math.random() * 500);
-
-        console.log(
-          `Waiting ${Math.round(waitTime / 1000)} seconds before retry...`
-        );
-
-        await new Promise(resolve =>
-          setTimeout(resolve, waitTime)
-        );
-      }
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      result = {};
     }
 
-    
-if (result?.error) {
-  console.error("Gemini API unavailable:", result.error);
+    if (response.ok) {
+      succeeded = true;
+      break;
+    }
+
+    lastError =
+      result.error?.message ||
+      `Gemini returned HTTP ${response.status}.`;
+
+    // Stop immediately when Gemini reports a quota or rate limit.
+    if (response.status === 429) {
+      const dailyQuota =
+        /quota|per day|daily|free.?tier|generate_content_requests/i.test(lastError);
+
+      console.error("Gemini limit reached:", lastError);
+
+      return res.status(429).json({
+        code: dailyQuota
+          ? "GEMINI_QUOTA_EXCEEDED"
+          : "GEMINI_RATE_LIMITED",
+        error: dailyQuota
+          ? "Gemini daily quota has been reached. Wait for the quota to reset or review your API limits and billing."
+          : "Gemini request limit reached. Please wait before trying again."
+      });
+    }
+
+    // Only retry temporary server errors.
+    const temporaryError = [500, 502, 503, 504]
+      .includes(response.status);
+
+    if (!temporaryError) {
+      return res.status(response.status).json({
+        code: "GEMINI_API_ERROR",
+        error: lastError
+      });
+    }
+
+    console.error("Temporary Gemini error:", lastError);
+
+  } catch (error) {
+    lastError = error.message || "Network request failed.";
+
+    console.error(
+      `Gemini request error on attempt ${attempt}:`,
+      lastError
+    );
+  }
+
+  if (attempt < 4) {
+    const waitTime = 2000 * Math.pow(2, attempt - 1);
+
+    console.log(
+      `Waiting ${waitTime / 1000} seconds before retry...`
+    );
+
+    await new Promise(resolve =>
+      setTimeout(resolve, waitTime)
+    );
+  }
+}
+
+if (!succeeded) {
+  console.error("Gemini analysis failed:", lastError);
 
   return res.status(503).json({
-    code: "AI_BUSY",
-    error: "Gemini is busy right now. Please wait a few minutes and try again."
+    code: "GEMINI_UNAVAILABLE",
+    error: "Gemini is temporarily unavailable. Please try again later."
   });
 }
 
